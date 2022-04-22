@@ -12,6 +12,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -82,8 +83,6 @@ class RateCheckService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        createNotificationChannel()
-
         startRate = BigDecimal(intent?.getStringExtra(ARG_START_RATE))
         targetRate = BigDecimal(intent?.getStringExtra(ARG_TARGET_RATE))
 
@@ -100,7 +99,11 @@ class RateCheckService : Service() {
     }
 
     private fun sendNotification(rate: String? = null) {
-        val notificationIntent = Intent(this, MainActivity::class.java)
+        createNotificationChannel()
+
+        val notificationIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
         val flag = when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> PendingIntent.FLAG_IMMUTABLE
             else -> 0
@@ -116,8 +119,10 @@ class RateCheckService : Service() {
             .setContentTitle(title)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
+            .setVibrate(LongArray(0))
             .build()
-        startForeground(1, notification)
+
+        NotificationManagerCompat.from(this).notify(1, notification)
     }
 
     private fun createNotificationChannel() {
